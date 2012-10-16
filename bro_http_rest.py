@@ -50,7 +50,7 @@ def search():
 def main():
     log_dir = sys.argv[1]
     app.config['log_dir'] = log_dir
-    run(app, port=8000)
+    run(app, host='0.0.0.0', port=8000)
 
 if __name__ == "__main__":
     main()
