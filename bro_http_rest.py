@@ -17,6 +17,8 @@ def collect_filenames(log_type):
 def do_search(filename, q):
     if filename.endswith("lzo"):
         f = Popen(["lzop", "-dc", filename], stdout=PIPE).stdout
+    elif filename.endswith("gz"):
+        f = Popen(["gzip", "-dc", filename], stdout=PIPE).stdout
     else:
         f = open(filename)
 
