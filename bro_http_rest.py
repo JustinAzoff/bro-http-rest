@@ -43,6 +43,7 @@ def search():
     files = int(request.GET.get("files",  "2").strip())
     limit = int(request.GET.get("limit",  "2000").strip())
 
+    response.content_type = "text/plain"
     return search_all(log, files, q)
 
 
