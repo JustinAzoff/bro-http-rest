@@ -36,24 +36,32 @@ def search_all(log_type, files, q):
         for r in do_search(f, q):
             yield r
 
-@app.route("/list")
-def list():
-    log = request.GET.get("log", "").strip()
-    if not log:
-        abort(500, "missing parameter 'log'")
+def search_file(log_type, filename, q):
+    log_files = collect_filenames(log_type)
+    files_to_search = [f for f in log_files if filename in f]
+    for f in files_to_search:
+        for r in do_search(f, q):
+            yield r
+
+@app.route("/list/:log")
+def list(log):
     log_files = collect_filenames(log)
     return {"files": log_files}
 
-@app.route("/search")
-def search():
-    log = request.GET.get("log", "").strip()
+@app.route("/search/:log")
+def search(log):
     q  = request.GET.get("q",   "").strip()
+    filename = request.GET.get("filename",  "").strip()
     files = int(request.GET.get("files",  "2").strip())
-    limit = int(request.GET.get("limit",  "2000").strip())
+
+    if "." in log:
+        abort(500, "invalid parameter 'log'")
 
     response.content_type = "text/plain"
-    return search_all(log, files, q)
-
+    if filename:
+        return search_file(log, filename, q)
+    else:
+        return search_all(log, files, q)
 
 def main():
     log_dir = sys.argv[1]
