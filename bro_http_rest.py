@@ -51,6 +51,7 @@ def do_search(filename, q, context_q=None):
 
     try:
         for line in out:
+            if line.startswith("--"):continue
             yield fix_ts(line)
     finally:
         f.close()
