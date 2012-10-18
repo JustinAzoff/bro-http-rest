@@ -5,8 +5,20 @@ from itertools import islice
 import os
 import sys
 import glob
+import datetime
 
+#import bottle
+#bottle.debug(True)
 app = Bottle()
+
+
+def ts_to_date(ts):
+    d=datetime.datetime.fromtimestamp(float(ts))
+    return d.strftime("%Y-%m-%d %H:%M:%S.%f")
+
+def fix_ts(line):
+    ts, rest = line.split("\t", 1)
+    return ts_to_date(ts) + "\t" + rest
 
 def collect_filenames(log_type):
     log_dir = app.config['log_dir']
@@ -14,7 +26,9 @@ def collect_filenames(log_type):
     files = sorted(glob.glob(pattern))
     return files 
 
-def do_search(filename, q):
+
+
+def do_search(filename, q, context_q=None):
     if filename.endswith("lzo"):
         f = Popen(["lzop", "-dc", filename], stdout=PIPE).stdout
     elif filename.endswith("gz"):
@@ -23,9 +37,12 @@ def do_search(filename, q):
         f = open(filename)
 
     out = Popen(["grep", q], stdin=f, stdout=PIPE).stdout
+    if context_q:
+        out = Popen(["grep", "-C", "20", context_q], stdin=out, stdout=PIPE).stdout
 
     try:
-        return out
+        for line in out:
+            yield fix_ts(line)
     finally:
         f.close()
 
