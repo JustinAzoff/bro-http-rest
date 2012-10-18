@@ -20,9 +20,18 @@ def fix_ts(line):
     ts, rest = line.split("\t", 1)
     return ts_to_date(ts) + "\t" + rest
 
+def get_header(log_type):
+    log_dir = app.config['log_dir']
+
+    current = os.path.join(log_dir, "current", log_type + ".log")
+    with open(current) as f:
+        for line in f:
+            if line.startswith("#fields"):
+                return line.replace("#fields\t", "")
+
 def collect_filenames(log_type):
     log_dir = app.config['log_dir']
-    pattern = os.path.join(log_dir, "*", "%s.*" % log_type)
+    pattern = os.path.join(log_dir, "*", log_type + ".*")
     files = sorted(glob.glob(pattern))
     return files 
 
@@ -46,18 +55,20 @@ def do_search(filename, q, context_q=None):
     finally:
         f.close()
 
-def search_all(log_type, files, q):
+def search_all(log_type, files, q, context_q):
     log_files = collect_filenames(log_type)
     files_to_search = log_files[-files:]
+    yield get_header(log_type)
     for f in files_to_search:
-        for r in do_search(f, q):
+        for r in do_search(f, q, context_q):
             yield r
 
-def search_file(log_type, filename, q):
+def search_file(log_type, filename, q, context_q):
     log_files = collect_filenames(log_type)
     files_to_search = [f for f in log_files if filename in f]
+    yield get_header(log_type)
     for f in files_to_search:
-        for r in do_search(f, q):
+        for r in do_search(f, q, context_q):
             yield r
 
 @app.route("/list/:log")
@@ -67,18 +78,19 @@ def list(log):
 
 @app.route("/search/:log")
 def search(log):
-    q  = request.GET.get("q",   "").strip()
+    q  = request.GET.get("q", "").strip()
+    context_q = request.GET.get("cq", "").strip()
     filename = request.GET.get("filename",  "").strip()
     files = int(request.GET.get("files",  "2").strip())
 
     if "." in log:
         abort(500, "invalid parameter 'log'")
 
-    response.content_type = "text/plain"
+    response.content_type = "text/csv"
     if filename:
-        return search_file(log, filename, q)
+        return search_file(log, filename, q, context_q)
     else:
-        return search_all(log, files, q)
+        return search_all(log, files, q, context_q)
 
 def main():
     log_dir = sys.argv[1]
